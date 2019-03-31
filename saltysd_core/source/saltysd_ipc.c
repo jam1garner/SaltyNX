@@ -2,11 +2,13 @@
 
 #include <switch.h>
 #include <stdarg.h>
+#include <twili.h>
 
 #include "saltysd_core.h"
 #include "useful.h"
 
 Handle saltysd;
+Service log_pipe;
 
 void SaltySD_Init()
 {
@@ -20,12 +22,16 @@ void SaltySD_Init()
         if (!ret) break;
     }
     
+    twiliInitialize();
+    twiliCreateNamedOutputPipe(&log_pipe, "smash", 5);
     //debug_log("SaltySD Core: Got handle %x\n", saltysd);
 }
 
 Result SaltySD_Deinit()
 {
     Result ret;
+    
+    twiliExit();
 
     //debug_log("SaltySD Core: terminating\n");
     ret = SaltySD_Term();
@@ -260,41 +266,7 @@ Result SaltySD_GetSDCard(Handle *retrieve)
 
 Result SaltySD_print(char* out)
 {
-    Result ret;
-    IpcCommand c;
-
-    ipcInitialize(&c);
-
-    struct 
-    {
-        u64 magic;
-        u64 cmd_id;
-        char log[64];
-        u64 reserved[2];
-    } *raw;
-
-    raw = ipcPrepareHeader(&c, sizeof(*raw));
-
-    raw->magic = SFCI_MAGIC;
-    raw->cmd_id = 5;
-    strncpy(raw->log, out, 64);
-
-    ret = ipcDispatch(saltysd);
-
-    if (R_SUCCEEDED(ret)) 
-    {
-        IpcParsedCommand r;
-        ipcParse(&r);
-
-        struct {
-            u64 magic;
-            u64 result;
-        } *resp = r.Raw;
-
-        ret = resp->result;
-    }
-
-    return ret;
+    twiliWriteNamedPipe(&log_pipe, out, strlen(out));
 }
 
 Result SaltySD_printf(const char* format, ...)

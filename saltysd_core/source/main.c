@@ -42,7 +42,7 @@ void __libnx_init(void* ctx, Handle main_thread, void* saved_lr)
     fake_heap_start = &g_heap[0];
     fake_heap_end   = &g_heap[sizeof g_heap];
     
-    __syscalls.getreent = __get_reent;
+    //__syscalls.getreent = __get_reent;
     
     orig_ctx = ctx;
     orig_main_thread = main_thread;
